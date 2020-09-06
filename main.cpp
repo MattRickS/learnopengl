@@ -67,11 +67,16 @@ int main()
 	// ========================================================================
 	// Prepare Data
 
-	// Vertices
+	// Load "mesh" into Vertex Array Object
 	float vertices[] {
-		-0.5f, -0.5f, 0.0f,
-		0.5f, -0.5f, 0.0f,
-		0.0f, 0.5f, 0.0f
+		 0.5f,  0.5f, 0.0f,  // Top right
+		 0.5f, -0.5f, 0.0f,  // Bottom right
+		-0.5f, -0.5f, 0.0f,  // Bottom Left
+		-0.5f,  0.5f, 0.0f   // Top Left
+	};
+	unsigned int indices[]{
+		0, 1, 3,  // Upper Right
+		1, 2, 3   // Lower Left
 	};
 	GLuint VAO;
 	glGenVertexArrays(1, &VAO);
@@ -84,6 +89,11 @@ int main()
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, NULL, (void*)0);
 	glEnableVertexAttribArray(0);
 
+	GLuint EBO;
+	glGenBuffers(1, &EBO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+	// TODO: All buffers are still bound, should unbind each but must unbind VAO first!
 
 	// Shaders
 	GLuint vertexShader = CompileShader(vertexShaderSource, GL_VERTEX_SHADER);
@@ -91,21 +101,26 @@ int main()
 	GLuint shaderProgram = CompileProgram(vertexShader, fragmentShader);
 	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);
-	glUseProgram(shaderProgram);
 
 	// ========================================================================
 	// Render loop
 	while (!glfwWindowShouldClose(window))
 	{
-		processInput(window);
-
+		// Initialise new frame
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		glDrawArrays(GL_TRIANGLES, 0, 3);
+		// Draw
+		glUseProgram(shaderProgram);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		glBindVertexArray(VAO);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		glBindVertexArray(0);
 
+		// Display and interaction
 		glfwSwapBuffers(window);
 		glfwPollEvents();
+		processInput(window);
 	}
 
 	glfwTerminate();
