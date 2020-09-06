@@ -21,8 +21,16 @@ void processInput(GLFWwindow* window)
 	}
 }
 
-GLuint LoadVAO(float* vertices, size_t numVertices, unsigned int* indices, size_t numIndices)
+GLuint LoadVAO(
+	float* vertexData,
+	size_t numVertices,
+	unsigned int* indices,
+	size_t numIndices,
+	bool colors
+)
 {
+	int numValuesPerVertex = (colors) ? 6 : 3;
+
 	GLuint VAO;
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
@@ -30,9 +38,14 @@ GLuint LoadVAO(float* vertices, size_t numVertices, unsigned int* indices, size_
 	GLuint VBO;
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * numVertices, vertices, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, NULL, (void*)0);
+	glBufferData(GL_ARRAY_BUFFER, numValuesPerVertex * sizeof(float) * numVertices, vertexData, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, numValuesPerVertex * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
+	if (colors)
+	{
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, numValuesPerVertex * sizeof(float), (void*)(3 * sizeof(float)));
+		glEnableVertexAttribArray(1);
+	}
 
 	GLuint EBO;
 	glGenBuffers(1, &EBO);
@@ -81,16 +94,15 @@ int main()
 
 	// Load "mesh" into Vertex Array Object
 	float vertices[] {
-		 0.5f,  0.5f, 0.0f,  // Top right
-		 0.5f, -0.5f, 0.0f,  // Bottom right
-		-0.5f, -0.5f, 0.0f,  // Bottom Left
-		-0.5f,  0.5f, 0.0f   // Top Left
+		// positions         // colors
+		 0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f,
+		-0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,
+		 0.0f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f
 	};
 	unsigned int indices[]{
-		0, 1, 3,  // Upper Right
-		1, 2, 3   // Lower Left
+		0, 1, 2
 	};
-	GLuint VAO = LoadVAO(vertices, 12, indices, 6);
+	GLuint VAO = LoadVAO(vertices, 3, indices, 3, true);
 
 	// Shaders
 	GLuint shaderProgram = LoadShadersProgram("shaders/SimpleVertexShader.glsl", "shaders/SimpleFragmentShader.glsl");
@@ -105,7 +117,7 @@ int main()
 
 		// Draw
 		glUseProgram(shaderProgram);
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		glBindVertexArray(VAO);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
