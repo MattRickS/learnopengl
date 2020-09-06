@@ -5,19 +5,6 @@
 #include "common/shader.hpp"
 
 
-const char* vertexShaderSource = "#version 330 core\n"
-"layout(location = 0) in vec3 aPos;\n"
-"void main()\n"
-"{\n"
-"	gl_Position = vec4(aPos, 1.0);\n"
-"}\0";
-const char* fragmentShaderSource = "#version 330 core\n"
-"out vec4 fragColor;\n"
-"void main()\n"
-"{\n"
-"	fragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-"}\0";
-
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
 	glViewport(0, 0, width, height);
@@ -106,11 +93,7 @@ int main()
 	GLuint VAO = LoadVAO(vertices, 12, indices, 6);
 
 	// Shaders
-	GLuint vertexShader = CompileShader(vertexShaderSource, GL_VERTEX_SHADER);
-	GLuint fragmentShader = CompileShader(fragmentShaderSource, GL_FRAGMENT_SHADER);
-	GLuint shaderProgram = CompileProgram(vertexShader, fragmentShader);
-	glDeleteShader(vertexShader);
-	glDeleteShader(fragmentShader);
+	GLuint shaderProgram = LoadShadersProgram("shaders/SimpleVertexShader.glsl", "shaders/SimpleFragmentShader.glsl");
 
 	// ========================================================================
 	// Render loop
@@ -122,7 +105,7 @@ int main()
 
 		// Draw
 		glUseProgram(shaderProgram);
-		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		glBindVertexArray(VAO);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
