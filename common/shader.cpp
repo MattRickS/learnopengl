@@ -4,20 +4,23 @@
 #include <string>
 #include <glad/glad.h>
 
-#include "shader.hpp"
+#include "Shader.hpp"
 
 std::string LoadFile(const char* filename)
 {
 	std::string code;
-	std::ifstream stream(filename, std::ios::in);
-	if (stream.is_open())
+	std::ifstream stream;
+	stream.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+	
+	try
 	{
+		stream.open(filename);
 		std::stringstream sstr;
 		sstr << stream.rdbuf();
-		code = sstr.str();
 		stream.close();
+		code = sstr.str();
 	}
-	else
+	catch(std::ifstream::failure e)
 	{
 		std::cout << "Unable to open " << filename << std::endl;
 	}
@@ -64,20 +67,40 @@ GLuint CompileProgram(GLuint vertexShader, GLuint fragmentShader)
 	return programID;
 }
 
-// Convenience method for loading a program with a vertex and fragment shader
-GLuint LoadShadersProgram(const char* vertexShaderFile, const char* fragmetnShaderFile)
+Shader::Shader(const char* vertexPath, const char* fragmentPath)
 {
-	// TODO: Invalid symbols in file - IDE? Windows line endings?
-	std::string vertexSource = LoadFile(vertexShaderFile);
-	std::string fragmentSource = LoadFile(fragmetnShaderFile);
+	std::string vertexSource = LoadFile(vertexPath);
+	std::string fragmentSource = LoadFile(fragmentPath);
 
 	GLuint vertexShader = CompileShader(vertexSource.c_str(), GL_VERTEX_SHADER);
 	GLuint fragmentShader = CompileShader(fragmentSource.c_str(), GL_FRAGMENT_SHADER);
 
-	GLuint programID = CompileProgram(vertexShader, fragmentShader);
+	ID = CompileProgram(vertexShader, fragmentShader);
 
 	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);
+}
 
-	return programID;
+void Shader::use()
+{
+	glUseProgram(ID);
+}
+
+// Utility uniform functions
+void Shader::setBool(const std::string& name, bool value) const
+{
+	GLuint location = glGetUniformLocation(ID, name.c_str());
+	glUniform1i(location, (int)value);
+}
+
+void Shader::setInt(const std::string& name, int value) const
+{
+	GLuint location = glGetUniformLocation(ID, name.c_str());
+	glUniform1i(location, value);
+}
+
+void Shader::setFloat(const std::string& name, float value) const
+{
+	GLuint location = glGetUniformLocation(ID, name.c_str());
+	glUniform1f(location, value);
 }

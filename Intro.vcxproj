@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="common\shader.cpp" />
+    <ClCompile Include="common\Shader.cpp" />
     <ClCompile Include="glad.c" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
@@ -29,7 +29,7 @@
     <None Include="shaders\SimpleVertexShader.glsl" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="common\shader.hpp" />
+    <ClInclude Include="common\Shader.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

@@ -2,7 +2,7 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 
-#include "common/shader.hpp"
+#include "common/Shader.hpp"
 
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
@@ -105,7 +105,7 @@ int main()
 	GLuint VAO = LoadVAO(vertices, 3, indices, 3, true);
 
 	// Shaders
-	GLuint shaderProgram = LoadShadersProgram("shaders/SimpleVertexShader.glsl", "shaders/SimpleFragmentShader.glsl");
+	Shader shader = Shader("shaders/SimpleVertexShader.glsl", "shaders/SimpleFragmentShader.glsl");
 
 	// ========================================================================
 	// Render loop
@@ -116,7 +116,7 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		// Draw
-		glUseProgram(shaderProgram);
+		shader.use();
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		glBindVertexArray(VAO);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
