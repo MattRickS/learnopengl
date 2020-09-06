@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include "common/Shader.hpp"
+#include "stb_image.h"
 
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
@@ -26,10 +27,13 @@ GLuint LoadVAO(
 	size_t numVertices,
 	unsigned int* indices,
 	size_t numIndices,
-	bool colors
+	bool colors,
+	bool uvs
 )
 {
-	int numValuesPerVertex = (colors) ? 6 : 3;
+	int numValuesPerVertex = 3;
+	if (colors) numValuesPerVertex += 3;
+	if (uvs) numValuesPerVertex += 2;
 
 	GLuint VAO;
 	glGenVertexArrays(1, &VAO);
@@ -41,10 +45,18 @@ GLuint LoadVAO(
 	glBufferData(GL_ARRAY_BUFFER, numValuesPerVertex * sizeof(float) * numVertices, vertexData, GL_STATIC_DRAW);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, numValuesPerVertex * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
+	int offset = 3;
 	if (colors)
 	{
-		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, numValuesPerVertex * sizeof(float), (void*)(3 * sizeof(float)));
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, numValuesPerVertex * sizeof(float), (void*)(offset * sizeof(float)));
 		glEnableVertexAttribArray(1);
+		offset += 3;
+	}
+	if (uvs)
+	{
+		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, numValuesPerVertex * sizeof(float), (void*)(offset * sizeof(float)));
+		glEnableVertexAttribArray(2);
+		offset += 2;
 	}
 
 	GLuint EBO;
@@ -57,6 +69,32 @@ GLuint LoadVAO(
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 	return VAO;
+}
+
+GLuint LoadImage(const char* path, GLenum format)
+{
+	GLuint texture;
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+
+	// Load data into the texture
+	int width, height, numChannels;
+	unsigned char* data = stbi_load(path, &width, &height, &numChannels, 0);
+	if (data)
+	{
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+	}
+	else
+	{
+		std::cout << "Faile to load texture: " << path << std::endl;
+	}
+	
+	// Cleanup
+	stbi_image_free(data);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	return texture;
 }
 
 int main()
@@ -94,18 +132,36 @@ int main()
 
 	// Load "mesh" into Vertex Array Object
 	float vertices[] {
-		// positions         // colors
-		 0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f,
-		-0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,
-		 0.0f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f
+		// positions          // colors           // texture coords
+		 0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // top right
+		 0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // bottom right
+		-0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // bottom left
+		-0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // top left 
 	};
 	unsigned int indices[]{
-		0, 1, 2
+		0, 1, 3,
+		1, 2, 3
 	};
-	GLuint VAO = LoadVAO(vertices, 3, indices, 3, true);
+	GLuint VAO = LoadVAO(vertices, 4, indices, 6, true, true);
 
 	// Shaders
 	Shader shader = Shader("shaders/SimpleVertexShader.glsl", "shaders/SimpleFragmentShader.glsl");
+	stbi_set_flip_vertically_on_load(true);
+	GLuint texture1 = LoadImage("Resources/container.jpg", GL_RGB);
+	GLuint texture2 = LoadImage("Resources/awesomeface.png", GL_RGBA);
+	shader.use();
+	shader.setInt("texture1", 0);
+	shader.setInt("texture2", 1);
+
+	// How to sample textures outside of the texture size
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+	// If using GL_CLAMP_TO_BORDER, a border color needs to be defined
+	/*float borderColor[]{ 1.0f, 1.0f, 0.0f, 1.0f };
+	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);*/
+	// How to sample textures dependening on minifying or magnifiying
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 	// ========================================================================
 	// Render loop
@@ -116,7 +172,10 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		// Draw
-		shader.use();
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, texture1);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, texture2);
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		glBindVertexArray(VAO);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
