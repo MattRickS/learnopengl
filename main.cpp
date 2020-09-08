@@ -5,8 +5,10 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
 
-#include "common/Shader.hpp"
+#define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+
+#include "common/Shader.hpp"
 
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
