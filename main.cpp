@@ -10,14 +10,67 @@
 
 #include "common/Shader.hpp"
 
+const unsigned int SCREEN_WIDTH = 800;
+const unsigned int SCREEN_HEIGHT = 600;
+
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+float deltaTime = 0.0f;
+float lastTime = 0.0f;
+const float cameraSpeed = 2.5f;
+const float mouseSensitivity = 0.1f;
+const float scrollSensitity = 2.0f;
+bool firstMouseInput = true;
+float fov = 45.0f;
+// Default yaw to 90 degrees to account for starting camera direction
+float yaw = -90.0f;
+float pitch = 0.0f;
+float lastX = SCREEN_WIDTH * 0.5f;
+float lastY = SCREEN_HEIGHT * 0.5f;
+
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
 	glViewport(0, 0, width, height);
 }
 
-const unsigned int SCREEN_WIDTH = 800;
-const unsigned int SCREEN_HEIGHT = 600;
+
+void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+{
+	if (firstMouseInput)
+	{
+		lastX = xpos;
+		lastY = ypos;
+		firstMouseInput = false;
+	}
+	float xoffset = xpos - lastX;
+	float yoffset = lastY - ypos;  // y-axis is inverse
+	lastX = xpos;
+	lastY = ypos;
+	yaw   += xoffset * mouseSensitivity;
+	pitch += yoffset * mouseSensitivity;
+	if (pitch > 89.0f)
+		pitch = 89.0f;
+	if (pitch < -89.0f)
+		pitch = -89.0f;
+	glm::vec3 direction = glm::vec3(
+		cos(glm::radians(yaw)) * cos(glm::radians(pitch)),
+		sin(glm::radians(pitch)),
+		sin(glm::radians(yaw)) * cos(glm::radians(pitch))
+	);
+	cameraFront = glm::normalize(direction);
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+	fov -= (float)yoffset * scrollSensitity;
+	if (fov < 1.0f)
+		fov = 1.0f;
+	if (fov > 45.0f)
+		fov = 45.0f;
+}
+
 
 void processInput(GLFWwindow* window)
 {
@@ -25,6 +78,20 @@ void processInput(GLFWwindow* window)
 	{
 		glfwSetWindowShouldClose(window, true);
 	}
+
+	float currentTime = glfwGetTime();
+	deltaTime = currentTime - lastTime;
+	lastTime = currentTime;
+
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		cameraPos += cameraSpeed * deltaTime * cameraFront;
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		cameraPos -= cameraSpeed * deltaTime * cameraFront;
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		cameraPos -= cameraSpeed * deltaTime * glm::normalize(glm::cross(cameraFront, cameraUp));
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		cameraPos += cameraSpeed * deltaTime * glm::normalize(glm::cross(cameraFront, cameraUp));
+
 }
 
 GLuint LoadVAO(
@@ -102,6 +169,17 @@ GLuint LoadImage(const char* path, GLenum format)
 	return texture;
 }
 
+glm::mat4 spinnningCameraView(float radius)
+{
+	float camX = sin(glfwGetTime()) * radius;
+	float camZ = cos(glfwGetTime()) * radius;
+	return glm::lookAt(
+		glm::vec3(camX, 0.0f, camZ),
+		glm::vec3(0.0f, 0.0f, 0.0f),
+		glm::vec3(0.0f, 1.0f, 0.0f)
+	);
+}
+
 int main()
 {
 	// Initialise cross-platform window support using core profile
@@ -124,6 +202,8 @@ int main()
 	}
 	glfwMakeContextCurrent(window);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+	glfwSetCursorPosCallback(window, mouse_callback);
+	glfwSetScrollCallback(window, scroll_callback);
 
 	// Loads the OpenGL function bindings
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -226,6 +306,7 @@ int main()
 
 	// Settings
 	glEnable(GL_DEPTH_TEST);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	// How to sample textures outside of the texture size
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
@@ -235,21 +316,6 @@ int main()
 	// How to sample textures dependening on minifying or magnifiying
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-	// Scene matrices
-	glm::mat4 view = glm::mat4(1.0f);
-	view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-
-	glm::mat4 perspective = glm::perspective(
-		glm::radians(45.0f),
-		(float)SCREEN_WIDTH / (float)SCREEN_HEIGHT,
-		0.1f,
-		100.0f
-	);
-	GLuint location = glGetUniformLocation(shader.ID, "view");
-	glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(view));
-	location = glGetUniformLocation(shader.ID, "projection");
-	glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(perspective));;
 
 	// Assign textures
 	glActiveTexture(GL_TEXTURE0);
@@ -266,6 +332,21 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
+		// Camera
+		glm::mat4 perspective = glm::perspective(
+			glm::radians(fov),
+			(float)SCREEN_WIDTH / (float)SCREEN_HEIGHT,
+			0.1f,
+			100.0f
+		);
+		GLuint location = glGetUniformLocation(shader.ID, "projection");
+		glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(perspective));;
+
+		glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+		location = glGetUniformLocation(shader.ID, "view");
+		glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(view));
+
+		// Draw multiple cubes
 		glBindVertexArray(VAO);
 		for(int i = 0; i < 10; i++)
 		{
