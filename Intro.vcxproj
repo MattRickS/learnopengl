@@ -29,6 +29,7 @@
     <None Include="shaders\SimpleVertexShader.glsl" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="common\Camera.hpp" />
     <ClInclude Include="common\Shader.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
