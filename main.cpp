@@ -249,7 +249,9 @@ int main()
 	GLuint VAO = LoadVAO(vertices, 36, indices, 36, true, true);
 	GLuint lightVAO = LoadVAO(vertices, 36, indices, 36, true, true);
 
-	glm::vec3 lightPos;  // (1.2f, 1.0f, 2.0f);
+	glm::vec3 lightDir;
+	glm::vec3 lightPos;
+	glm::vec4 lightViewPos;
 
 	// Shaders
 	GLuint diffuseMap = LoadImage("Resources/container2.png", GL_RGBA);
@@ -269,6 +271,17 @@ int main()
 	shader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
 	shader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
 
+	shader.setFloat("light.constant", 1.0f);
+	shader.setFloat("light.linear", 0.09f);
+	shader.setFloat("light.quadratic", 0.032f);
+
+	shader.setFloat("light.cutOff", glm::cos(glm::radians(12.5f)));
+	shader.setFloat("light.outerCutOff", glm::cos(glm::radians(17.5f)));
+
+	shader.setTexture(GL_TEXTURE0, diffuseMap);
+	shader.setTexture(GL_TEXTURE1, specularMap);
+	shader.setTexture(GL_TEXTURE2, emissionMap);
+
 	Shader lightShader = Shader("shaders/LightVertexShader.glsl", "shaders/LightFragmentShader.glsl");
 
 	// Settings
@@ -279,7 +292,6 @@ int main()
 	// Render loop
 	GLuint location;
 	glm::mat3 normMatrix;
-	glm::vec3 lightViewPos;
 	float aspect = (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT;
 	float lightSpeed = 15;
 	while (!glfwWindowShouldClose(window))
@@ -298,9 +310,7 @@ int main()
 
 		// Camera
 		glm::mat4 view = camera.viewMatrix();
-		glm::mat4 perspective = camera.projectionMatrix(aspect, 0.11, 100.0f);
-		lightPos = glm::vec3(cos(glm::radians(glfwGetTime() * lightSpeed)), 1.0f, sin(glm::radians(glfwGetTime() * lightSpeed)));
-		lightViewPos = view * glm::vec4(lightPos, 1.0f);
+		glm::mat4 perspective = camera.projectionMatrix(aspect, 0.2f, 100.0f);
 
 		// Draw Meshes
 		glBindVertexArray(VAO);
@@ -309,14 +319,22 @@ int main()
 		normMatrix = normalMatrix(view * model);
 	
 		shader.use();
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, diffuseMap);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, specularMap);
-		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_2D, emissionMap);
+
+		shader.setInt("light.type", 2);
+
+		/*lightPos = glm::vec3(
+			cos(glm::radians(glfwGetTime() * lightSpeed)),
+			1.0f,
+			sin(glm::radians(glfwGetTime() * lightSpeed))
+		);
+		lightDir = glm::vec3(0.2f, -1.0f, 0.3f);*/
+		lightPos = camera.position;
+		lightViewPos = view * glm::vec4(lightPos, 1.0f);
+		lightDir = glm::vec3(view * glm::vec4(camera.forward, 0.0f));
 
 		shader.setVec3("light.position", lightViewPos.x, lightViewPos.y, lightViewPos.z);
+		shader.setVec3("light.direction", lightDir.x, lightDir.y, lightDir.z);
+
 		shader.setMat3("normalMatrix", normMatrix);
 		shader.setMat4("projection", perspective);
 		shader.setMat4("view", view);
@@ -327,7 +345,7 @@ int main()
 		glBindVertexArray(lightVAO);
 		lightShader.use();
 		model = glm::mat4(1.0f);
-		model = glm::translate(model, lightPos);
+		model = glm::translate(model, glm::vec3(lightPos));
 		model = glm::scale(model, glm::vec3(0.2f));
 		lightShader.setMat4("projection", perspective);
 		lightShader.setMat4("view", view);
