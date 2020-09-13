@@ -36,9 +36,15 @@
     <None Include="shaders\SimpleVertexShader.glsl">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="shaders\SimpleFragmentShader.glsl" />
-    <None Include="shaders\LightFragmentShader.glsl" />
-    <None Include="shaders\LightVertexShader.glsl" />
+    <None Include="shaders\LightFragmentShader.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\LightVertexShader.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\SimpleFragmentShader.glsl">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="common\Shader.hpp">

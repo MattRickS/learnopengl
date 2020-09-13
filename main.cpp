@@ -31,10 +31,6 @@ void processInput(GLFWwindow* window)
 		glfwSetWindowShouldClose(window, true);
 	}
 
-	float currentTime = glfwGetTime();
-	deltaTime = currentTime - lastTime;
-	lastTime = currentTime;
-
 	CameraMovement move = CameraMovement::IDLE;
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 		move = move | CameraMovement::FORWARD;
@@ -264,14 +260,17 @@ int main()
 	// Shaders
 	Shader shader = Shader("shaders/SimpleVertexShader.glsl", "shaders/SimpleFragmentShader.glsl");
 	shader.use();
-	shader.setFloat("ambientStrength", 0.1f);
-	shader.setFloat("specularStrength", 0.9f);
-	shader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
-	shader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
+
+	shader.setVec3("material.ambient", 1.0f, 0.5f, 0.31f);
+	shader.setVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
+	shader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
+	shader.setFloat("material.shininess", 32.0f);
+
+	shader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
+	shader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
+	shader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
 
 	Shader lightShader = Shader("shaders/LightVertexShader.glsl", "shaders/LightFragmentShader.glsl");
-	lightShader.use();
-	lightShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
 
 	// Settings
 	glEnable(GL_DEPTH_TEST);
@@ -286,6 +285,14 @@ int main()
 	float lightSpeed = 15;
 	while (!glfwWindowShouldClose(window))
 	{
+		// Timing
+		float currentTime = glfwGetTime();
+		deltaTime = currentTime - lastTime;
+		lastTime = currentTime;
+
+		// Input
+		processInput(window);
+
 		// Initialise new frame
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -299,41 +306,31 @@ int main()
 
 		// Draw Meshes
 		glBindVertexArray(VAO);
-		shader.use();
-		shader.setVec3("lightPos", lightViewPos.x, lightViewPos.y, lightViewPos.z);
+
 		glm::mat4 model = glm::mat4(1.0f);
-		model = glm::translate(model, glm::vec3(0));
 		normMatrix = normalMatrix(view * model);
-		location = glGetUniformLocation(shader.ID, "normalMatrix");
-		glUniformMatrix3fv(location, 1, GL_FALSE, glm::value_ptr(normMatrix));;
-		location = glGetUniformLocation(shader.ID, "projection");
-		glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(perspective));;
-		location = glGetUniformLocation(shader.ID, "view");
-		glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(view));
-		location = glGetUniformLocation(shader.ID, "model");
-		glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(model));
-		glEnableVertexAttribArray(1);
-		glEnableVertexAttribArray(2);
+	
+		shader.use();
+		shader.setVec3("light.position", lightViewPos.x, lightViewPos.y, lightViewPos.z);
+		shader.setMat3("normalMatrix", normMatrix);
+		shader.setMat4("projection", perspective);
+		shader.setMat4("view", view);
+		shader.setMat4("model", model);
+		/*glEnableVertexAttribArray(1);
+		glEnableVertexAttribArray(2);*/
 		glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
 		// Draw Lights
 		glBindVertexArray(lightVAO);
 		lightShader.use();
-		//lightShader.setVec3("lightPos", lightViewPos.x, lightViewPos.y, lightViewPos.z);
 		model = glm::mat4(1.0f);
 		model = glm::translate(model, lightPos);
 		model = glm::scale(model, glm::vec3(0.2f));
-		/*normMatrix = normalMatrix(view * model);
-		location = glGetUniformLocation(shader.ID, "normalMatrix");
-		glUniformMatrix3fv(location, 1, GL_FALSE, glm::value_ptr(normMatrix));;*/
-		location = glGetUniformLocation(lightShader.ID, "projection");
-		glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(perspective));;
-		location = glGetUniformLocation(lightShader.ID, "view");
-		glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(view));
-		location = glGetUniformLocation(lightShader.ID, "model");
-		glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(model));
-		glDisableVertexAttribArray(1);
-		glDisableVertexAttribArray(2);
+		lightShader.setMat4("projection", perspective);
+		lightShader.setMat4("view", view);
+		lightShader.setMat4("model", model);
+		/*glDisableVertexAttribArray(1);
+		glDisableVertexAttribArray(2);*/
 		glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
 		// Cleanup
@@ -342,7 +339,6 @@ int main()
 		// Display and interaction
 		glfwSwapBuffers(window);
 		glfwPollEvents();
-		processInput(window);
 	}
 
 	glfwTerminate();
