@@ -37,6 +37,8 @@
       <Filter>Shaders</Filter>
     </None>
     <None Include="shaders\SimpleFragmentShader.glsl" />
+    <None Include="shaders\LightFragmentShader.glsl" />
+    <None Include="shaders\LightVertexShader.glsl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="common\Shader.hpp">

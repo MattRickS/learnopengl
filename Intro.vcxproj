@@ -25,6 +25,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
+    <None Include="shaders\LightFragmentShader.glsl" />
+    <None Include="shaders\LightVertexShader.glsl" />
     <None Include="shaders\SimpleFragmentShader.glsl" />
     <None Include="shaders\SimpleVertexShader.glsl" />
   </ItemGroup>
