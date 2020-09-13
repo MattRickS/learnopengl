@@ -259,7 +259,7 @@ int main()
 	GLuint VAO = LoadVAO(vertices, 36, indices, 36, true, false);
 	GLuint lightVAO = LoadVAO(vertices, 36, indices, 36, true, false);
 
-	glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+	glm::vec3 lightPos;  // (1.2f, 1.0f, 2.0f);
 
 	// Shaders
 	Shader shader = Shader("shaders/SimpleVertexShader.glsl", "shaders/SimpleFragmentShader.glsl");
@@ -283,6 +283,7 @@ int main()
 	glm::mat3 normMatrix;
 	glm::vec3 lightViewPos;
 	float aspect = (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT;
+	float lightSpeed = 15;
 	while (!glfwWindowShouldClose(window))
 	{
 		// Initialise new frame
@@ -293,6 +294,7 @@ int main()
 		// Camera
 		glm::mat4 view = camera.viewMatrix();
 		glm::mat4 perspective = camera.projectionMatrix(aspect, 0.11, 100.0f);
+		lightPos = glm::vec3(cos(glm::radians(glfwGetTime() * lightSpeed)), 1.0f, sin(glm::radians(glfwGetTime() * lightSpeed)));
 		lightViewPos = view * glm::vec4(lightPos, 1.0f);
 
 		// Draw Meshes
