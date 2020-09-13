@@ -254,12 +254,14 @@ int main()
 	// Shaders
 	GLuint diffuseMap = LoadImage("Resources/container2.png", GL_RGBA);
 	GLuint specularMap = LoadImage("Resources/container2_specular.png", GL_RGBA);
+	GLuint emissionMap = LoadImage("Resources/matrix.jpg", GL_RGB);
 	
 	Shader shader = Shader("shaders/SimpleVertexShader.glsl", "shaders/SimpleFragmentShader.glsl");
 	shader.use();
 
 	shader.setInt("material.diffuse", 0);
 	shader.setInt("material.specular", 1);
+	shader.setInt("material.emission", 2);
 	shader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
 	shader.setFloat("material.shininess", 32.0f);
 
@@ -311,6 +313,8 @@ int main()
 		glBindTexture(GL_TEXTURE_2D, diffuseMap);
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, specularMap);
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, emissionMap);
 
 		shader.setVec3("light.position", lightViewPos.x, lightViewPos.y, lightViewPos.z);
 		shader.setMat3("normalMatrix", normMatrix);
